@@ -3,6 +3,7 @@ GEM
   specs:
     base64 (0.2.0)
     concurrent-ruby (1.2.2)
+    dotenv (2.8.1)
     httparty (0.21.0)
       mini_mime (>= 1.0.0)
       multi_xml (>= 0.5.2)
@@ -32,6 +33,7 @@ PLATFORMS
   arm64-darwin-22
 
 DEPENDENCIES
+  dotenv
   httparty
   nokogiri
   sinatra
