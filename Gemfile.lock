@@ -1,19 +1,29 @@
 GEM
   remote: https://rubygems.org/
   specs:
+    aws-eventstream (1.3.0)
+    aws-partitions (1.883.0)
+    aws-sdk-core (3.190.3)
+      aws-eventstream (~> 1, >= 1.3.0)
+      aws-partitions (~> 1, >= 1.651.0)
+      aws-sigv4 (~> 1.8)
+      jmespath (~> 1, >= 1.6.1)
+    aws-sdk-lambda (1.113.0)
+      aws-sdk-core (~> 3, >= 3.188.0)
+      aws-sigv4 (~> 1.1)
+    aws-sigv4 (1.8.0)
+      aws-eventstream (~> 1, >= 1.0.2)
     base64 (0.2.0)
     concurrent-ruby (1.2.2)
     dotenv (2.8.1)
     httparty (0.21.0)
       mini_mime (>= 1.0.0)
       multi_xml (>= 0.5.2)
+    jmespath (1.6.2)
     mini_mime (1.1.5)
     multi_xml (0.6.0)
     mustermann (3.0.0)
       ruby2_keywords (~> 0.0.1)
-    nokogiri (1.16.0-arm64-darwin)
-      racc (~> 1.4)
-    racc (1.7.3)
     rack (2.2.8)
     rack-protection (3.2.0)
       base64 (>= 0.1.0)
@@ -31,11 +41,12 @@ GEM
 
 PLATFORMS
   arm64-darwin-22
+  arm64-darwin-23
 
 DEPENDENCIES
+  aws-sdk-lambda
   dotenv
   httparty
-  nokogiri
   sinatra
   tzinfo
   webrick
