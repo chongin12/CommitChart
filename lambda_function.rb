@@ -12,21 +12,26 @@ module LambdaFunction
       # owner = event.pathParameters.owner
       repo = event["pathParameters"]["repo"]
       # repo = event.pathParameters.repo
-      since_date = DateTime.parse(event["queryStringParameters"]["since"]) rescue DateTime.now() - 365
-      since_date = DateTime.new(since_date.year, since_date.month, since_date.day, 0, 0, 0, 0)
-      until_date = DateTime.parse(event["queryStringParameters"]["until"]) + 1 rescue DateTime.now() + 1
-      until_date = DateTime.new(until_date.year, until_date.month, until_date.day, 0, 0, 0, 0)
       timezone_param = (event["queryStringParameters"]["tz"].to_s.empty? ? "Asia/Seoul" : event["queryStringParameters"]["tz"]) rescue "Asia/Seoul"
+      tz = TZInfo::Timezone.get(timezone_param)
       offset_hours = utc_offset_in_hours(timezone_param)
+      since_date = DateTime.parse(event["queryStringParameters"]["since"]) - Rational(offset_hours, 24) rescue DateTime.now() - 365
+      until_date = DateTime.parse(event["queryStringParameters"]["until"]) - Rational(offset_hours, 24) + 1 rescue DateTime.now() + 1
+      since_date = tz.utc_to_local(since_date.new_offset(0))
+      since_date = DateTime.new(since_date.year, since_date.month, since_date.day, 0, 0, 0, Rational(offset_hours, 24))
+      until_date = tz.utc_to_local(until_date.new_offset(0))
+      until_date = DateTime.new(until_date.year, until_date.month, until_date.day, 0, 0, 0, Rational(offset_hours, 24))
+
       if until_date < since_date
         since_date = until_date - 365
       end
+      if until_date - since_date > 365
+        since_date = until_date - 365
+      end
 
-      since_date = since_date - Rational(offset_hours, 24)
-      until_date = until_date - Rational(offset_hours, 24)
-
-      since_str = since_date.strftime('%Y-%m-%dT%H:%M:%SZ')
-      until_str = until_date.strftime('%Y-%m-%dT%H:%M:%SZ')
+      # github api는 +09:00 등을 인식하지 못함. 버그로 추정.
+      since_str = (since_date - Rational(offset_hours, 24)).strftime('%Y-%m-%dT%H:%M:%SZ')
+      until_str = (until_date - Rational(offset_hours, 24)).strftime('%Y-%m-%dT%H:%M:%SZ')
 
       days_difference = (until_date - since_date).to_i
       $commit_counts = Array.new(days_difference, 0)
@@ -39,7 +44,7 @@ module LambdaFunction
         config_commit_counts(commit_data, since_date, until_date)
       end
 
-      svg_chart = generate_svg(owner, repo, since_date + Rational(offset_hours, 24), until_date + Rational(offset_hours, 24) - 1, timezone_param)
+      svg_chart = generate_svg(owner, repo, since_date, until_date - 1, timezone_param)
       # svg_chart = "<svg></svg>"
       {
         statusCode: 200,
@@ -87,14 +92,12 @@ module LambdaFunction
       svg += "<text x='10' y='90' fill='black' font-family='Arial' font-size='14'>timezone : #{timezone_param}</text>\n"
 
       max_count = $commit_counts.max
-      puts "max count : #{max_count}"
 
       # 사각형 및 애니메이션 추가
       $commit_counts.each_with_index do |count, index|
         x = (index / 7).floor * rect_size + 10
         y = (index % 7).floor * rect_size + 110
         level = commit_level(count, max_count)
-        puts "commit level with count #{count} is #{level}"
         color = level_to_color(level)
 
         delay = index * 0.02
