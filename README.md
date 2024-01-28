@@ -1,5 +1,6 @@
 # Commit Chart
-Commit Chart is an API that displays the history of commits for each repository in a table format.
+Commit Chart is an API that displays the history of commits for each repository in a table format.\
+(It only works in public repositories.)
 
 ## usage
 
