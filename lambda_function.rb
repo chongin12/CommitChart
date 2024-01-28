@@ -14,12 +14,10 @@ module LambdaFunction
       # repo = event.pathParameters.repo
       since_date = DateTime.parse(event["queryStringParameters"]["since"]) rescue DateTime.now() - 365
       since_date = DateTime.new(since_date.year, since_date.month, since_date.day, 0, 0, 0, 0)
-      until_date = DateTime.parse(event["queryStringParameters"]["until"]) rescue DateTime.now() + 1
+      until_date = DateTime.parse(event["queryStringParameters"]["until"]) + 1 rescue DateTime.now() + 1
       until_date = DateTime.new(until_date.year, until_date.month, until_date.day, 0, 0, 0, 0)
-      timezone_param = event["queryStringParameters"]["tz"] || "Asia/Seoul"
+      timezone_param = (event["queryStringParameters"]["tz"].to_s.empty? ? "Asia/Seoul" : event["queryStringParameters"]["tz"]) rescue "Asia/Seoul"
       offset_hours = utc_offset_in_hours(timezone_param)
-      puts("offset hours : ")
-      puts offset_hours
       if until_date < since_date
         since_date = until_date - 365
       end
@@ -28,10 +26,7 @@ module LambdaFunction
       until_date = until_date - Rational(offset_hours, 24)
 
       since_str = since_date.strftime('%Y-%m-%dT%H:%M:%SZ')
-      puts("since_date : " + since_date.iso8601)
-      puts(since_str)
       until_str = until_date.strftime('%Y-%m-%dT%H:%M:%SZ')
-      puts(until_str)
 
       days_difference = (until_date - since_date).to_i
       $commit_counts = Array.new(days_difference, 0)
@@ -44,7 +39,7 @@ module LambdaFunction
         config_commit_counts(commit_data, since_date, until_date)
       end
 
-      svg_chart = generate_svg(since_str, until_str)
+      svg_chart = generate_svg(owner, repo, since_date + Rational(offset_hours, 24), until_date + Rational(offset_hours, 24) - 1, timezone_param)
       # svg_chart = "<svg></svg>"
       {
         statusCode: 200,
@@ -60,15 +55,15 @@ module LambdaFunction
     # since_date와 until_date는 Date 클래스.
     def self.fetch_commit_data(owner, repo, since_str, until_str, page=1)
         url = "https://api.github.com/repos/#{owner}/#{repo}/commits?since=#{since_str}&until=#{until_str}&per_page=100&page=#{page}"
-        puts("url : " + url)
         response = HTTParty.get(url, headers: {"User-Agent" => "CommitChart", "Authorization" => "token #{ENV['GITHUB_TOKEN']}"})
         JSON.parse(response.body)
     end
 
-    def self.generate_svg(since_str, until_str)
+    def self.generate_svg(owner, repo, since_date, until_date, timezone_param)
       rect_size = 15
+      corner_radius = 3
       svg_width = [((($commit_counts.length / 7).floor + 1) * rect_size) + 20, 800].max
-      svg_height = 7 * rect_size + 100
+      svg_height = 7 * rect_size + 135
 
       # SVG 시작 태그 및 스타일 정의
       svg = "<svg width='#{svg_width}' height='#{svg_height}' xmlns='http://www.w3.org/2000/svg' style='background-color: #f4f4f4;'>\n"
@@ -76,6 +71,7 @@ module LambdaFunction
       svg += "  rect {"
       svg += "    opacity: 0;"
       svg += "    animation: fadeIn 0.5s ease-in-out forwards;"
+      svg += "    box-shadow: 3px 3px 5px rgba(0, 0, 0, 0.2);"
       svg += "  }"
       svg += "  @keyframes fadeIn {"
       svg += "    to {"
@@ -85,20 +81,24 @@ module LambdaFunction
       svg += "</style>\n"
 
       # 텍스트 위치 조정
-      svg += "<text x='10' y='30' fill='black' font-family='Arial' font-size='14'>since #{since_str}</text>\n"
-      svg += "<text x='10' y='50' fill='black' font-family='Arial' font-size='14'>until #{until_str}</text>\n"
+      svg += "<text x='10' y='25' fill='black' font-family='Arial' font-size='20'>#{owner} / #{repo}</text>\n"
+      svg += "<text x='10' y='50' fill='black' font-family='Arial' font-size='14'>since #{since_date.year}-#{since_date.month}-#{since_date.day}</text>\n"
+      svg += "<text x='10' y='70' fill='black' font-family='Arial' font-size='14'>until #{until_date.year}-#{until_date.month}-#{until_date.day}</text>\n"
+      svg += "<text x='10' y='90' fill='black' font-family='Arial' font-size='14'>timezone : #{timezone_param}</text>\n"
 
       max_count = $commit_counts.max
+      puts "max count : #{max_count}"
 
       # 사각형 및 애니메이션 추가
       $commit_counts.each_with_index do |count, index|
         x = (index / 7).floor * rect_size + 10
-        y = (index % 7).floor * rect_size + 70
+        y = (index % 7).floor * rect_size + 110
         level = commit_level(count, max_count)
+        puts "commit level with count #{count} is #{level}"
         color = level_to_color(level)
 
-        delay = index * 0.05
-        svg += "<rect x='#{x}' y='#{y}' width='#{rect_size}' height='#{rect_size}' fill='#{color}' stroke='white' stroke-width='1' style='animation-delay:#{delay}s;' />\n"
+        delay = index * 0.02
+        svg += "<rect x='#{x}' y='#{y}' width='#{rect_size}' height='#{rect_size}' rx='#{corner_radius}' ry='#{corner_radius}' fill='#{color}' stroke='white' stroke-width='1' style='animation-delay:#{delay}s;' />\n"
       end
 
       svg += "</svg>"
@@ -106,15 +106,13 @@ module LambdaFunction
     end
 
     def self.commit_level(count, max_count)
-      # Define levels based on commit count
-      case count
-      when 0 then 0
-      when 1..max_count/4 then 1
-      when max_count/4..max_count/4*2 then 2
-      when max_count/4*2..max_count/4*3 then 3
-      else 4
-      end
+      return 0 if count == 0
+      return 1 if count <= max_count * 0.25
+      return 2 if count <= max_count * 0.50
+      return 3 if count <= max_count * 0.75
+      4
     end
+
 
     def self.level_to_color(level)
       # Define color based on level
@@ -138,16 +136,12 @@ module LambdaFunction
     end
 
     def self.config_commit_counts(commit_data, since_date, until_date)
-      puts "commit data : #{commit_data}"
       commit_data.each do |commit|
-        puts commit
         commit_date_str = commit["commit"]["committer"]["date"]
         commit_date = DateTime.parse(commit_date_str)
 
         # since_date와 until_date 범위 내의 날짜만 고려
         if commit_date >= since_date && commit_date <= until_date
-          puts("commit_date : #{commit_date.iso8601}, since_date : #{since_date.iso8601}")
-          puts "#{(commit_date - since_date).to_i}"
           $commit_counts[(commit_date - since_date).to_i] += 1
         end
       end
