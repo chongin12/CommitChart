@@ -48,7 +48,10 @@ module LambdaFunction
       # svg_chart = "<svg></svg>"
       {
         statusCode: 200,
-        headers: { 'Content-Type' => 'image/svg+xml' },
+        headers: {
+          'Content-Type' => 'image/svg+xml',
+          'Cache-Control' => 'max-age=600'
+        },
         body: svg_chart
       }
     end
