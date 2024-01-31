@@ -15,6 +15,7 @@ For example,
 ```
 shows [github.com/chongin12/Problem_Solving](github.com/chongin12/Problem_Solving) repository.\
 Like this :
+![](https://api.mosu.blog/chongin12/Problem_Solving)
 
 ## Path Parameters
 ### owner
@@ -40,4 +41,4 @@ Timezone. (Default : Asia/Seoul)
 ```markdown
 ![](https://api.mosu.blog/chongin12/Problem_Solving?since=2024-01-01&until=2024-01-28&tz=Asia/Seoul)
 ```
-![](https://api.mosu.blog/chongin12/Problem_Solving?since=2024-01-01&until=2024-01-28&tz=Asia/Seoul)
+![](https://api.mosu.blog/chongin12/Problem_Solving?since=2024-01-01&until=2024-01-30&tz=Asia/Seoul)
