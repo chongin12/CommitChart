@@ -39,6 +39,6 @@ YYYY-MM-DD format. (Default : Today)
 ### tz
 Timezone. (Default : Asia/Seoul)
 ```markdown
-![](https://api.mosu.blog/chongin12/Problem_Solving?since=2024-01-01&until=2024-01-28&tz=Asia/Seoul)
+![](https://api.mosu.blog/chongin12/Problem_Solving?since=2024-01-01&until=2024-01-30&tz=Asia/Seoul)
 ```
 ![](https://api.mosu.blog/chongin12/Problem_Solving?since=2024-01-01&until=2024-01-30&tz=Asia/Seoul)
