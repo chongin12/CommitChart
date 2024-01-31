@@ -50,7 +50,7 @@ module LambdaFunction
         statusCode: 200,
         headers: {
           'Content-Type' => 'image/svg+xml',
-          'Cache-Control' => 'no-store'
+          'Cache-Control' => 'max-age=600'
         },
         body: svg_chart
       }
